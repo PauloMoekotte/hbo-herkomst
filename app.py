@@ -136,13 +136,28 @@ uploaded_file = st.sidebar.file_uploader(
 df = None
 
 if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file)
-    except UnicodeDecodeError:
-        df = pd.read_csv(uploaded_file, encoding="latin-1")
-    except Exception as e:
-        st.error(f"Fout bij inlezen van het bestand: {e}")
+    tried = False
+
+    # Probeer een paar veelvoorkomende combinaties
+    for enc in ["utf-8", "latin-1"]:
+        for sep in [",", ";", "\t"]:
+            if tried:
+                break
+            try:
+                df = pd.read_csv(uploaded_file, sep=sep, encoding=enc)
+                tried = True
+            except UnicodeDecodeError:
+                continue
+            except pd.errors.ParserError:
+                continue
+
+    if not tried:
+        st.error(
+            "Fout bij inlezen van het bestand. "
+            "Probeer het bestand lokaal als 'CSV (UTF-8, komma of puntkomma)' op te slaan en opnieuw te uploaden."
+        )
         df = None
+
 
 if df is not None:
     st.sidebar.success("Bestand succesvol ingelezen.")
